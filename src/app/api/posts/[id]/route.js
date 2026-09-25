@@ -2,13 +2,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../../lib/auth";
 import { prisma } from "../../../lib/prisma";
 import z from "zod";
-
-const updateSchema = z.object({
-  title: z.string().max(100).optional(),
-  content: z.string().min(1, "Content tidak boleh kosong").optional(),
-  mood: z.string().max(30).optional(),
-  iamgeUrl: z.string().url().nullable().optional(),
-});
+import { unlink } from "fs/promises";
+import path from "path";
 
 export async function PATCH(request, { params }) {
   try {
@@ -20,6 +15,15 @@ export async function PATCH(request, { params }) {
 
     const { id } = await params;
     const body = await request.json();
+
+    const updateSchema = z.object({
+      title: z.string().max(100).optional(),
+      content: z.string().min(1, "Content tidak boleh kosong").optional(),
+      mood: z.string().max(30).optional(),
+      imageUrls: z.array(z.string()).optional(),
+      deletedImageIds: z.array(z.string()).optional(),
+    });
+
     const result = updateSchema.safeParse(body);
 
     if (!result.success) {
@@ -32,20 +36,77 @@ export async function PATCH(request, { params }) {
       );
     }
 
-    const { title, content, mood, imageUrl } = result.data;
-
-    const existingUser = await prisma.post.findFirst({
+    const existingPost = await prisma.post.findFirst({
       where: {
         id,
         userId: currentUser.userId,
       },
     });
 
-    if (!existingUser) {
+    if (!existingPost) {
       return NextResponse.json(
         { message: "Data post tidak ditemukan" },
         { status: 404 },
       );
+    }
+
+    const {
+      title,
+      content,
+      mood,
+      deletedImageIds = [],
+      imageUrls = [],
+    } = result.data;
+
+    if (deletedImageIds.length > 0) {
+      const imagesToDelete = await prisma.postImage.findMany({
+        where: {
+          id: {
+            in: deletedImageIds,
+          },
+          postId: id,
+        },
+      });
+
+      await prisma.postImage.deleteMany({
+        where: {
+          id: {
+            in: deletedImageIds,
+          },
+          postId: id,
+        },
+      });
+
+      for (const image of imagesToDelete) {
+        const fileName = path.basename(image.imageUrl);
+
+        const filePath = path.join(
+          process.cwd(),
+          "public",
+          "uploads",
+          fileName,
+        );
+
+        try {
+          await unlink(filePath);
+          console.log("File gambar dihapus:", filePath);
+        } catch (error) {
+          if (error.code === "ENOENT") {
+            console.log("File gambar tidak ditemukan:", filePath);
+          } else {
+            console.error("Gagal menghapus file gambar:", error);
+          }
+        }
+      }
+    }
+
+    if (imageUrls.length > 0) {
+      await prisma.postImage.createMany({
+        data: imageUrls.map((imageUrl) => ({
+          postId: id,
+          imageUrl,
+        })),
+      });
     }
 
     const post = await prisma.post.update({
@@ -56,7 +117,9 @@ export async function PATCH(request, { params }) {
         title,
         content,
         mood,
-        imageUrl,
+      },
+      include: {
+        images: true,
       },
     });
 
@@ -86,6 +149,9 @@ export async function GET(request, { params }) {
       where: {
         id,
         userId: currentUser.userId,
+      },
+      include: {
+        images: true,
       },
     });
 
@@ -120,6 +186,9 @@ export async function DELETE(request, { params }) {
 
     const existingPost = await prisma.post.findFirst({
       where: { id, userId: currentUser.userId },
+      include: {
+        images: true,
+      },
     });
 
     if (!existingPost) {
@@ -134,6 +203,24 @@ export async function DELETE(request, { params }) {
         id: existingPost.id,
       },
     });
+
+    for (const image of existingPost.images) {
+      const fileName = path.basename(image.imageUrl);
+
+      const filePath = path.join(process.cwd(), "public", "uploads", fileName);
+
+      try {
+        await unlink(filePath);
+
+        console.log("File gambar dihapus:", filePath);
+      } catch (error) {
+        if (error.code === "ENOENT") {
+          console.log("File gambar tidak ditemukan:", filePath);
+        } else {
+          console.error("Gagal menghapus file gambar:", error);
+        }
+      }
+    }
 
     return NextResponse.json(
       { message: "Data post berhasil dihapus" },

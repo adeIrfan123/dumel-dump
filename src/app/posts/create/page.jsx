@@ -1,70 +1,137 @@
-import React from "react";
-import ImageStack from "../../components/ImageStack";
-import Link from "next/link";
+"use client";
+
+import React, { useState } from "react";
+import { useAuth } from "../../provider/AuthProvider";
+import { encryptText } from "../../lib/encryption";
+import { useRouter } from "next/navigation";
+import HeaderForm from "../../components/HeaderForm";
+import ButtonX from "../../components/ButtonX";
+import FormDumel from "../../components/FormDumel";
 
 function CreatePost() {
-  const images = [
-    "/Cuking.jpg",
-    "/Cuking2.jpg",
-    "/Cuking3.jpg",
-    "/Cuking4.jpg",
-    "/Cuking5.jpg",
-  ];
+  const router = useRouter();
+  const { encryptionKey } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [notification, setNotification] = useState({
+    type: "",
+    message: "",
+  });
+
+  const uploadImage = async (file) => {
+    const formData = new FormData();
+
+    formData.append("file", file);
+
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Gagal mengupload gambar");
+    }
+
+    return data.imageUrl;
+  };
+
+  const showNotification = (type, message) => {
+    setNotification({ type, message });
+
+    setTimeout(() => {
+      setNotification({
+        type: "",
+        message: "",
+      });
+    }, 3000);
+  };
+
+  const handleSubmitCreat = async ({ title, content, mood, files }) => {
+    // event.preventDefault();
+
+    if (!encryptionKey) {
+      showNotification("error", "Encryption key tidak tersedia");
+      return;
+    }
+
+    if (loading) {
+      showNotification("error", "Sedang memuat data pengguna...");
+
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const encryptedContent = await encryptText(content, encryptionKey);
+      const encryptedTitle = await encryptText(title, encryptionKey);
+
+      let imageUrls = [];
+
+      for (const file of files) {
+        const imageUrl = await uploadImage(file);
+
+        imageUrls.push(imageUrl);
+      }
+
+      console.log("Content asli:", content);
+      console.log("Content terenkripsi:", encryptedContent);
+
+      const response = await fetch("/api/posts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: encryptedTitle,
+          content: encryptedContent,
+          mood,
+          imageUrls,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.log(data.message || "Gagal membuat post");
+        return;
+      }
+
+      showNotification("success", "Post berhasil dibuat!");
+
+      console.log("Berhasil mengambil data:", data);
+
+      setTimeout(() => {
+        router.push("/");
+      }, 1000);
+    } catch (error) {
+      console.error("Error membuat post:", error);
+    }
+  };
+
   return (
     <div className="shadow-[6px_6px_rgba(0,0,0,255)] bg-dumel-paper mt-4 relative">
-      <h1 className="bg-pink-500 text-2xl font-bold -rotate-2 py-2 px-4 shadow shadow-[-6px_6px_rgba(0,0,0,255)] absolute -left-3">
-        {"Create you'r Dumel"}
-      </h1>
-
-      <div className="flex justify-end px-8 pt-4 ">
-        <Link href="/" className="text-3xl font-bold">
-          X
-        </Link>
-      </div>
-
-      <form action="" className="pt-8 px-4">
-        <div>
-          <input
-            type="text"
-            placeholder="Title"
-            className="w-full border-2 py-2 px-4 rounded-lg placeholder:font-bold placeholder:text-xl "
-          />
-          <textarea
-            type="text"
-            placeholder="You'r Dumel"
-            className="my-8 w-full h-80 border-2 py-2 px-4 rounded-lg placeholder:font-bold placeholder:text-xl"
-          />
-
-          <ImageStack images={images} />
-
-          <div className="my-9">
-            <input id="gambar" type="file" className="hidden" />
-            <label
-              htmlFor="gambar"
-              className="inline-block cursor-pointer rounded-lg border-2 border-dumel-line bg-dumel-yellow px-5 py-3 font-bold text-dumel-ink transition hover:bg-dumel-yellow-dark"
-            >
-              📷 Tambahkan Gambar
-            </label>
-          </div>
-
-          <div className="flex gap-3 text-3xl mt-5 mb-12">
-            <p>🤩</p>
-            <p>😡</p>
-            <p>😢</p>
-            <p>😆</p>
-            <p>🫤</p>
-          </div>
-
-          <div className="flex justify-end mb-12">
-            <button
-              type="button"
-              className="bg-dumel-yellow py-2 px-12 text-3xl font-bold rounded-lg border-2 shadow-[-6px_6px_rgba(0,0,0,255)] hover:bg-dumel-yellow-dark transition-all hover:-rotate-3 active:shadow-none active:translate-y-2"
-            >
-              Share
-            </button>
-          </div>
+      {notification.message && (
+        <div
+          className={`fixed top-12 left-1/2 z-[9999] -translate-x-1/2 rounded-lg px-5 py-3 shadow-lg ${
+            notification.type === "success"
+              ? "bg-green-500 text-white"
+              : "bg-red-500 text-white"
+          }`}
+        >
+          <p className="font-bold text-lg">{notification.message}</p>
         </div>
-      </form>
+      )}
+
+      <HeaderForm title={"Create you'r Dumel"} />
+      <ButtonX />
+
+      <FormDumel
+        onSubmit={handleSubmitCreat}
+        loading={loading}
+        submitText="Create Post"
+      />
     </div>
   );
 }

@@ -2,12 +2,28 @@
 
 import { useState } from "react";
 
-export default function ImageStack({ images }) {
+export default function ImageStack({ images, onRemove }) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   const handleNext = () => {
-    console.log("gambar diklik");
+    if (images.length <= 1) {
+      return;
+    }
+    console.log("gambar diklik", activeIndex);
     setActiveIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const handleRemove = (event) => {
+    console.log(`menghapus cuking ${activeIndex}`);
+    event.stopPropagation();
+    onRemove(activeIndex);
+    setActiveIndex((prev) => {
+      if (prev >= images.length - 1) {
+        return Math.max(0, images.length - 2);
+      }
+
+      return prev;
+    });
   };
 
   return (
@@ -42,7 +58,13 @@ export default function ImageStack({ images }) {
 
         return (
           <div
-            key={image}
+            key={
+              typeof image === "string"
+                ? `image-${image}-${index}`
+                : image.id
+                  ? `db-${image.id}`
+                  : `new-${image.imageUrl}`
+            }
             className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl transition-all duration-500 ease-out"
             style={{
               zIndex: 30 - position,
@@ -53,7 +75,20 @@ export default function ImageStack({ images }) {
               `,
             }}
           >
-            <img src={image} alt="" className="h-full w-full object-cover" />
+            {onRemove && position === 0 && (
+              <button
+                type="button"
+                onClick={handleRemove}
+                className="pointer-events-auto absolute right-3 top-3 z-[100] flex h-10 w-10 items-center justify-center rounded-full bg-black/70 text-xl text-white"
+              >
+                x
+              </button>
+            )}
+            <img
+              src={typeof image === "string" ? image : image.imageUrl}
+              alt=""
+              className="h-full w-full object-cover"
+            />
           </div>
         );
       })}

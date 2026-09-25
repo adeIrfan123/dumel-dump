@@ -21,17 +21,36 @@ model User {
   posts Post[]
 }
 
+enum Mood {
+  HAPPY
+  ANGRY
+  SAD
+  LAUGHING
+  CONFUSED
+}
+
 model Post {
   id        String @id @default(uuid())
   userId    String
   title     String
   content   String? @db.Text
-  mood      String?
-  imageUrl  String?
+  mood      Mood
+  images    PostImage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   user User @relation(fields:[userId], references:[id], onDelete: Cascade)
   @@index([userId, createdAt])
+}
+
+model PostImage{
+  id        String   @id @default(uuid())
+  postId    String
+  imageUrl  String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
 }
