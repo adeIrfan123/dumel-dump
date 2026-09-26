@@ -47,9 +47,6 @@ function EditPostPage() {
         const response = await fetch(`/api/posts/${params.id}`);
         const data = await response.json();
 
-        console.log("data:", data);
-        console.log("data post", data.posts);
-
         if (!response.ok) {
           throw new Error(data.message || "Gagal mengambil data post");
         }
@@ -95,8 +92,6 @@ function EditPostPage() {
           images: decryptedImages,
         });
       } catch (error) {
-        console.error("Fetch post error:", error);
-
         showNotification("error", error.message || "Gagal mengambil data post");
       } finally {
         setLoading(false);
@@ -149,8 +144,6 @@ function EditPostPage() {
         imageUrls.push(uploadData.imageUrl);
       }
 
-      console.log("Gambar yang dihapus:", deletedImages);
-      console.log("Gambar baru:", imageUrls);
       const response = await fetch(`/api/posts/${params.id}`, {
         method: "PATCH",
         headers: {
@@ -176,9 +169,7 @@ function EditPostPage() {
       setTimeout(() => {
         router.push("/");
       }, 1000);
-    } catch (error) {
-      console.error("Update post error:", error);
-
+    } catch {
       showNotification("error", "Gagal memperbarui post");
     } finally {
       setSaving(false);

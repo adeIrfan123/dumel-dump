@@ -12,14 +12,10 @@ export default function ImageStack({ images, onRemove }) {
       return;
     }
 
-    console.log("gambar diklik", activeIndex);
-
     setActiveIndex((prev) => (prev + 1) % validImages.length);
   };
 
   const handleRemove = (event) => {
-    console.log(`menghapus cuking ${activeIndex}`);
-
     event.stopPropagation();
 
     onRemove(activeIndex);

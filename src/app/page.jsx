@@ -79,8 +79,6 @@ export default function Home() {
       setActiveMenu(null);
       setPostToDelete(null);
     } catch (error) {
-      console.error("Delete post error:", error);
-
       setError(error instanceof Error ? error.message : "Gagal menghapus post");
     } finally {
       setDeletingPost(false);
@@ -145,8 +143,6 @@ export default function Home() {
               }),
             );
 
-            console.log("POST IMAGES:", post.images);
-
             return {
               ...post,
               title: decryptedTitle,
@@ -158,8 +154,6 @@ export default function Home() {
 
         setPosts(decryptedPosts);
       } catch (error) {
-        console.error("Error mengambil posts:", error);
-
         if (error instanceof Error) {
           setError(error.message);
         } else {

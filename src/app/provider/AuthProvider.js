@@ -34,16 +34,12 @@ export function AuthProvider({ children }) {
             const key = await importEncryptionKey(storedKey);
 
             setEncryptionKey(key);
-          } catch (error) {
-            console.error("Gagal memulihkan encrption key:", error);
-
+          } catch {
             localStorage.removeItem("dumeldump_encryption_key");
             setEncryptionKey(null);
           }
         }
-      } catch (error) {
-        console.error("Auth check error:", error);
-
+      } catch {
         setUser(null);
       } finally {
         setLoading(false);
@@ -67,7 +63,6 @@ export function AuthProvider({ children }) {
       });
 
       const data = await response.json();
-      console.log(data);
 
       if (!response.ok) {
         throw new Error(data.message || "Gagal melakukan login");
@@ -84,8 +79,6 @@ export function AuthProvider({ children }) {
 
       return data.user;
     } catch (error) {
-      console.error("Login error:", error);
-
       throw error;
     }
   }
@@ -107,8 +100,6 @@ export function AuthProvider({ children }) {
       setUser(null);
       setEncryptionKey(null);
     } catch (error) {
-      console.error("Logout error:", error);
-
       throw error;
     }
   }

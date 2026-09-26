@@ -83,9 +83,7 @@ export async function POST(req) {
     });
 
     return response;
-  } catch (error) {
-    console.error(error);
-
+  } catch {
     return NextResponse.json(
       {
         message: "Terjadi kesalahan pada server",

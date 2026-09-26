@@ -60,9 +60,7 @@ export async function POST(req) {
       },
       { status: 201 },
     );
-  } catch (error) {
-    console.error(error);
-
+  } catch {
     return NextResponse.json(
       { message: "Terjadi kesalahan pada server" },
       { status: 500 },

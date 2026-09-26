@@ -33,9 +33,7 @@ export async function GET() {
     return NextResponse.json({
       user,
     });
-  } catch (error) {
-    console.error(error);
-
+  } catch {
     return NextResponse.json(
       {
         message: "Terjadi kesalahan pada server",

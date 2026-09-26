@@ -70,12 +70,10 @@ export async function PATCH(request, { params }) {
       for (const image of imagesToDelete) {
         try {
           await deleteFromR2(image.imageUrl);
-          console.log("File gambar dihapus:", image.imageUrl);
-        } catch (error) {
-          console.error(
-            "Gagal menghapus gambar dari R2:",
-            image.imageUrl,
-            error,
+        } catch {
+          return NextResponse.json(
+            { message: "Gagal menghapus gambar" },
+            { status: 401 },
           );
         }
       }
@@ -210,10 +208,11 @@ export async function DELETE(request, { params }) {
     for (const image of existingPost.images) {
       try {
         await deleteFromR2(image.imageUrl);
-
-        console.log("File gambar dihapus:", image.imageUrl);
-      } catch (error) {
-        console.error("Gagal menghapus gambar dari R2:", image.imageUrl, error);
+      } catch {
+        return NextResponse.json(
+          { message: "Gagal menghapus gambar" },
+          { status: 401 },
+        );
       }
     }
 

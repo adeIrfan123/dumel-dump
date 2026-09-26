@@ -5,17 +5,33 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../provider/AuthProvider";
 import NotLogin from "../components/NotLogin";
 import LoadingAccount from "../components/LoadingAccount";
+import { useState } from "react";
 
 function AccountPage() {
   const router = useRouter();
   const { user, loading, logout } = useAuth();
+
+  const [notification, setNotification] = useState({
+    type: "",
+    message: "",
+  });
 
   async function handleLogout() {
     try {
       await logout();
       router.push("/login");
     } catch (error) {
-      console.error("Logout error:", error);
+      setNotification({
+        type: "error",
+        message: error.message || "Gagal melakukan logout",
+      });
+
+      setTimeout(() => {
+        setNotification({
+          type: "",
+          message: "",
+        });
+      }, 3000);
     }
   }
 
@@ -29,6 +45,18 @@ function AccountPage() {
 
   return (
     <main className="min-h-screen bg-dumel-paper px-5 py-8">
+      {notification.message && (
+        <div
+          className={`fixed top-12 left-1/2 z-[9999] -translate-x-1/2 rounded-lg px-5 py-3 shadow-lg ${
+            notification.type === "success"
+              ? "bg-green-500 text-white"
+              : "bg-red-500 text-white"
+          }`}
+        >
+          <p className="text-lg font-bold">{notification.message}</p>
+        </div>
+      )}
+
       <div className="mx-auto w-full max-w-2xl">
         <div className="mb-8">
           <Link

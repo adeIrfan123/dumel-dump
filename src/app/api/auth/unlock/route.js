@@ -49,9 +49,7 @@ export async function POST(request) {
       message: "Unlock berhasil",
       encryptionSalt: user.encryptionSalt,
     });
-  } catch (error) {
-    console.error("Unlock error", error);
-
+  } catch {
     return NextResponse.json(
       { message: "Terjadi kesalan diserver" },
       { status: 500 },

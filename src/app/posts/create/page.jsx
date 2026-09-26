@@ -34,8 +34,6 @@ function CreatePost() {
 
     const data = await response.json();
 
-    console.log("HASIL UPLOAD:", data);
-
     if (!response.ok) {
       throw new Error(data.message || "Gagal mengupload gambar");
     }
@@ -79,19 +77,10 @@ function CreatePost() {
       for (const file of files) {
         const encryptedFile = await encryptFile(file, encryptionKey);
 
-        console.log("FILE ASLI:", file);
-        console.log("FILE TERENKRIPSI:", encryptedFile);
-
         const imageUrl = await uploadImage(encryptedFile);
-        console.log("IMAGE URL DARI UPLOAD:", imageUrl);
 
         imageUrls.push(imageUrl);
       }
-
-      console.log("SEMUA IMAGE URL:", imageUrls);
-
-      console.log("Content asli:", content);
-      console.log("Content terenkripsi:", encryptedContent);
 
       const response = await fetch("/api/posts", {
         method: "POST",
@@ -109,19 +98,22 @@ function CreatePost() {
       const data = await response.json();
 
       if (!response.ok) {
-        console.log(data.message || "Gagal membuat post");
+        showNotification("error", data.message || "Gagal membuat post");
         return;
       }
 
       showNotification("success", "Post berhasil dibuat!");
 
-      console.log("Berhasil mengambil data:", data);
-
       setTimeout(() => {
         router.push("/");
       }, 1000);
     } catch (error) {
-      console.error("Error membuat post:", error);
+      showNotification(
+        "error",
+        error.message || "Terjadi kesalahan saat membuat post",
+      );
+    } finally {
+      setLoading(false);
     }
   };
 

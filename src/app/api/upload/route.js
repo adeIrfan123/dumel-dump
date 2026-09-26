@@ -29,8 +29,6 @@ export async function POST(request) {
 
     await uploadToR2(file, key);
 
-    console.log("R2 IMAGE KEY:", key);
-
     return NextResponse.json(
       {
         message: "Gambar berhasil diupload",
@@ -38,9 +36,7 @@ export async function POST(request) {
       },
       { status: 201 },
     );
-  } catch (error) {
-    console.error("Upload error:", error);
-
+  } catch {
     return NextResponse.json(
       { message: "Gagal mengupload gambar" },
       { status: 500 },
