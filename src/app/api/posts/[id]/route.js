@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../../lib/auth";
 import { prisma } from "../../../lib/prisma";
 import z from "zod";
-import { unlink } from "fs/promises";
-import path from "path";
+import { deleteFromR2, getR2SignUrl } from "../../../lib/r2";
 
 export async function PATCH(request, { params }) {
   try {
@@ -68,6 +67,19 @@ export async function PATCH(request, { params }) {
         },
       });
 
+      for (const image of imagesToDelete) {
+        try {
+          await deleteFromR2(image.imageUrl);
+          console.log("File gambar dihapus:", image.imageUrl);
+        } catch (error) {
+          console.error(
+            "Gagal menghapus gambar dari R2:",
+            image.imageUrl,
+            error,
+          );
+        }
+      }
+
       await prisma.postImage.deleteMany({
         where: {
           id: {
@@ -76,28 +88,6 @@ export async function PATCH(request, { params }) {
           postId: id,
         },
       });
-
-      for (const image of imagesToDelete) {
-        const fileName = path.basename(image.imageUrl);
-
-        const filePath = path.join(
-          process.cwd(),
-          "public",
-          "uploads",
-          fileName,
-        );
-
-        try {
-          await unlink(filePath);
-          console.log("File gambar dihapus:", filePath);
-        } catch (error) {
-          if (error.code === "ENOENT") {
-            console.log("File gambar tidak ditemukan:", filePath);
-          } else {
-            console.error("Gagal menghapus file gambar:", error);
-          }
-        }
-      }
     }
 
     if (imageUrls.length > 0) {
@@ -145,7 +135,7 @@ export async function GET(request, { params }) {
 
     const { id } = await params;
 
-    const posts = await prisma.post.findFirst({
+    const post = await prisma.post.findFirst({
       where: {
         id,
         userId: currentUser.userId,
@@ -155,15 +145,34 @@ export async function GET(request, { params }) {
       },
     });
 
-    if (!posts) {
+    if (!post) {
       return NextResponse.json(
-        { message: "Data posts tidak ditemukan" },
+        { message: "Data post tidak ditemukan" },
         { status: 404 },
       );
     }
 
+    const images = await Promise.all(
+      post.images.map(async (image) => {
+        const signedurl = await getR2SignUrl(image.imageUrl);
+
+        return {
+          ...image,
+          imageUrl: signedurl,
+        };
+      }),
+    );
+
+    const postWithSignedUrls = {
+      ...post,
+      images,
+    };
+
     return NextResponse.json(
-      { message: `Data posts ${id} berhasil diambil`, posts },
+      {
+        message: `Data post ${id} berhasil diambil`,
+        posts: postWithSignedUrls,
+      },
       { status: 200 },
     );
   } catch (error) {
@@ -198,29 +207,21 @@ export async function DELETE(request, { params }) {
       );
     }
 
+    for (const image of existingPost.images) {
+      try {
+        await deleteFromR2(image.imageUrl);
+
+        console.log("File gambar dihapus:", image.imageUrl);
+      } catch (error) {
+        console.error("Gagal menghapus gambar dari R2:", image.imageUrl, error);
+      }
+    }
+
     await prisma.post.delete({
       where: {
         id: existingPost.id,
       },
     });
-
-    for (const image of existingPost.images) {
-      const fileName = path.basename(image.imageUrl);
-
-      const filePath = path.join(process.cwd(), "public", "uploads", fileName);
-
-      try {
-        await unlink(filePath);
-
-        console.log("File gambar dihapus:", filePath);
-      } catch (error) {
-        if (error.code === "ENOENT") {
-          console.log("File gambar tidak ditemukan:", filePath);
-        } else {
-          console.error("Gagal menghapus file gambar:", error);
-        }
-      }
-    }
 
     return NextResponse.json(
       { message: "Data post berhasil dihapus" },

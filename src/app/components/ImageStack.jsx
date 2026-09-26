@@ -5,21 +5,28 @@ import { useState } from "react";
 export default function ImageStack({ images, onRemove }) {
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const validImages = images.filter((image) => image !== null);
+
   const handleNext = () => {
-    if (images.length <= 1) {
+    if (validImages.length <= 1) {
       return;
     }
+
     console.log("gambar diklik", activeIndex);
-    setActiveIndex((prev) => (prev + 1) % images.length);
+
+    setActiveIndex((prev) => (prev + 1) % validImages.length);
   };
 
   const handleRemove = (event) => {
     console.log(`menghapus cuking ${activeIndex}`);
+
     event.stopPropagation();
+
     onRemove(activeIndex);
+
     setActiveIndex((prev) => {
-      if (prev >= images.length - 1) {
-        return Math.max(0, images.length - 2);
+      if (prev >= validImages.length - 1) {
+        return Math.max(0, validImages.length - 2);
       }
 
       return prev;
@@ -31,8 +38,9 @@ export default function ImageStack({ images, onRemove }) {
       onClick={handleNext}
       className="relative w-full aspect-[4/3] cursor-pointer touch-manipulation"
     >
-      {images.map((image, index) => {
-        const position = (index - activeIndex + images.length) % images.length;
+      {validImages.map((image, index) => {
+        const position =
+          (index - activeIndex + validImages.length) % validImages.length;
 
         if (position > 2) return null;
 
@@ -84,6 +92,7 @@ export default function ImageStack({ images, onRemove }) {
                 x
               </button>
             )}
+
             <img
               src={typeof image === "string" ? image : image.imageUrl}
               alt=""

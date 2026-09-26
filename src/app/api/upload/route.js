@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { writeFile } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
+import { uploadToR2 } from "../../lib/r2";
 
 export async function POST(request) {
   try {
@@ -15,29 +15,26 @@ export async function POST(request) {
       );
     }
 
-    if (!file.type.startsWith("image/")) {
+    if (file.type !== "application/octet-stream") {
       return NextResponse.json(
-        { message: "File harus berupa gambar" },
+        { message: "File terenkripsi tidak valid" },
         { status: 400 },
       );
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    // const extension = path.extname(file.name);
+    const fileName = `${randomUUID()}.enc`;
 
-    const extension = path.extname(file.name);
-    const fileName = `${randomUUID()}${extension}`;
+    const key = `posts/${fileName}`;
 
-    const uploadPath = path.join("public", "uploads", fileName);
+    await uploadToR2(file, key);
 
-    await writeFile(uploadPath, buffer);
-
-    const imageUrl = `/uploads/${fileName}`;
+    console.log("R2 IMAGE KEY:", key);
 
     return NextResponse.json(
       {
         message: "Gambar berhasil diupload",
-        imageUrl,
+        imageUrl: key,
       },
       { status: 201 },
     );

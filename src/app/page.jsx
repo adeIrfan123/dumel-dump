@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "./provider/AuthProvider";
-import { decryptText } from "./lib/encryption";
+import { decryptText, decryptFile } from "./lib/encryption";
 import ImageStack from "./components/ImageStack";
 import { useRouter } from "next/navigation";
 import NotLogin from "./components/NotLogin";
@@ -32,6 +32,20 @@ export default function Home() {
 
   const handleToggleBtn = (id) => {
     setActiveMenu((prev) => (prev === id ? null : id));
+  };
+
+  const decryptImage = async (imageUrl) => {
+    const response = await fetch(imageUrl);
+
+    if (!response.ok) {
+      throw new Error("Gagal mengambil gambar terenkripsi");
+    }
+
+    const encryptedBlob = await response.blob();
+
+    const decryptedBlob = await decryptFile(encryptedBlob, encryptionKey);
+
+    return URL.createObjectURL(decryptedBlob);
   };
 
   const handleEditPost = (id) => {
@@ -107,10 +121,37 @@ export default function Home() {
               encryptionKey,
             );
 
+            const decryptedImages = await Promise.all(
+              post.images.map(async (image) => {
+                const response = await fetch(image.imageUrl);
+
+                if (!response.ok) {
+                  throw new Error("Gagal mengambil gambar terenkripsi");
+                }
+
+                const encryptedBlob = await response.blob();
+
+                const decryptedBlob = await decryptFile(
+                  encryptedBlob,
+                  encryptionKey,
+                );
+
+                const imageUrl = URL.createObjectURL(decryptedBlob);
+
+                return {
+                  ...image,
+                  imageUrl,
+                };
+              }),
+            );
+
+            console.log("POST IMAGES:", post.images);
+
             return {
               ...post,
               title: decryptedTitle,
               content: decryptedContent,
+              images: decryptedImages,
             };
           }),
         );
@@ -325,7 +366,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* EMPTY */}
         {!loadingPosts &&
           !error &&
           encryptionKey &&

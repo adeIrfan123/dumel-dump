@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useAuth } from "../../provider/AuthProvider";
-import { encryptText } from "../../lib/encryption";
+import { encryptText, encryptFile } from "../../lib/encryption";
 import { useRouter } from "next/navigation";
 import HeaderForm from "../../components/HeaderForm";
 import ButtonX from "../../components/ButtonX";
@@ -33,6 +33,8 @@ function CreatePost() {
     });
 
     const data = await response.json();
+
+    console.log("HASIL UPLOAD:", data);
 
     if (!response.ok) {
       throw new Error(data.message || "Gagal mengupload gambar");
@@ -75,10 +77,18 @@ function CreatePost() {
       let imageUrls = [];
 
       for (const file of files) {
-        const imageUrl = await uploadImage(file);
+        const encryptedFile = await encryptFile(file, encryptionKey);
+
+        console.log("FILE ASLI:", file);
+        console.log("FILE TERENKRIPSI:", encryptedFile);
+
+        const imageUrl = await uploadImage(encryptedFile);
+        console.log("IMAGE URL DARI UPLOAD:", imageUrl);
 
         imageUrls.push(imageUrl);
       }
+
+      console.log("SEMUA IMAGE URL:", imageUrls);
 
       console.log("Content asli:", content);
       console.log("Content terenkripsi:", encryptedContent);

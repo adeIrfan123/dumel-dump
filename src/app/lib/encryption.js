@@ -90,3 +90,74 @@ export async function decryptText(encryptedText, encryptionKey) {
 
   return new TextDecoder().decode(decryptedData);
 }
+
+export async function encryptFile(file, key) {
+  const arrayBuffer = await file.arrayBuffer();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+
+  const encryptedData = await crypto.subtle.encrypt(
+    {
+      name: "AES-GCM",
+      iv,
+    },
+    key,
+    arrayBuffer,
+  );
+
+  const mimeTypeBytes = new TextEncoder().encode(file.type);
+
+  const encryptedBuffer = new Uint8Array(
+    1 + mimeTypeBytes.length + iv.length + encryptedData.byteLength,
+  );
+
+  let offset = 0;
+
+  encryptedBuffer[offset] = mimeTypeBytes.length;
+  offset += 1;
+
+  encryptedBuffer.set(mimeTypeBytes, offset);
+  offset += mimeTypeBytes.length;
+
+  encryptedBuffer.set(iv, offset);
+  offset += iv.length;
+
+  encryptedBuffer.set(new Uint8Array(encryptedData), offset);
+
+  return new File([encryptedBuffer], `encrypted-${file.name}.enc`, {
+    type: "application/octet-stream",
+  });
+}
+
+export async function decryptFile(blob, key) {
+  const arrayBuffer = await blob.arrayBuffer();
+
+  const data = new Uint8Array(arrayBuffer);
+
+  let offset = 0;
+
+  const mimeTypeLength = data[offset];
+  offset += 1;
+
+  const mimeTypeBytes = data.slice(offset, offset + mimeTypeLength);
+
+  const mimeType = new TextDecoder().decode(mimeTypeBytes);
+
+  offset += mimeTypeLength;
+
+  const iv = data.slice(offset, offset + 12);
+  offset += 12;
+
+  const encryptedData = data.slice(offset);
+
+  const decryptedData = await crypto.subtle.decrypt(
+    {
+      name: "AES-GCM",
+      iv,
+    },
+    key,
+    encryptedData,
+  );
+  return new Blob([decryptedData], {
+    type: mimeType,
+  });
+}

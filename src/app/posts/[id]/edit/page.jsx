@@ -6,7 +6,12 @@ import ButtonX from "../../../components/ButtonX";
 import FormDumel from "../../../components/FormDumel";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "../../../provider/AuthProvider";
-import { decryptText, encryptText } from "../../../lib/encryption";
+import {
+  decryptFile,
+  decryptText,
+  encryptFile,
+  encryptText,
+} from "../../../lib/encryption";
 
 function EditPostPage() {
   const params = useParams();
@@ -59,10 +64,35 @@ function EditPostPage() {
           encryptionKey,
         );
 
+        const decryptedImages = await Promise.all(
+          data.posts.images.map(async (image) => {
+            const imageResponse = await fetch(image.imageUrl);
+
+            if (!imageResponse.ok) {
+              throw new Error("Gagal mengambil gambar terenkripsi");
+            }
+
+            const encryptedBlob = await imageResponse.blob();
+
+            const decryptedBlob = await decryptFile(
+              encryptedBlob,
+              encryptionKey,
+            );
+
+            const imageUrl = URL.createObjectURL(decryptedBlob);
+
+            return {
+              ...image,
+              imageUrl,
+            };
+          }),
+        );
+
         setPost({
           ...data.posts,
           title: decryptedTitle,
           content: decryptedContent,
+          images: decryptedImages,
         });
       } catch (error) {
         console.error("Fetch post error:", error);
@@ -99,9 +129,11 @@ function EditPostPage() {
       const imageUrls = [];
 
       for (const file of files) {
+        const encryptedFile = await encryptFile(file, encryptionKey);
+
         const formData = new FormData();
 
-        formData.append("file", file);
+        formData.append("file", encryptedFile);
 
         const uploadResponse = await fetch("/api/upload", {
           method: "POST",

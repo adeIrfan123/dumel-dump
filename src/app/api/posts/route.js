@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
 import { includes, z } from "zod";
+import { getR2SignUrl } from "../../lib/r2";
 
 const postSchema = z.object({
   title: z.string().max(100).optional(),
   content: z.string().min(1, "Content tidak boleh kosong"),
   mood: z.string().max(30).optional(),
-  // imageUrl: z.string().optional(),
   imageUrls: z.array(z.string()).optional(),
 });
 
@@ -85,10 +85,30 @@ export async function GET() {
       },
     });
 
+    const postWithSignedUrls = await Promise.all(
+      posts.map(async (post) => {
+        const images = await Promise.all(
+          post.images.map(async (image) => {
+            const signedurl = await getR2SignUrl(image.imageUrl);
+
+            return {
+              ...image,
+              imageUrl: signedurl,
+            };
+          }),
+        );
+
+        return {
+          ...post,
+          images,
+        };
+      }),
+    );
+
     return NextResponse.json(
       {
         message: "Data posts berhasil diambil",
-        posts,
+        posts: postWithSignedUrls,
       },
       { status: 200 },
     );

@@ -8,17 +8,39 @@ datasource db {
 }
 
 model User {
-  id             String @id @default(uuid())
-  username       String @unique
-  email          String @unique
+  id             String   @id @default(uuid())
+  username       String   @unique
   password       String
-  encryptionSalt String?
   avatarUrl      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  email          String   @unique
+  encryptionSalt String?
+  posts          Post[]
+}
 
+model Post {
+  id        String      @id @default(uuid())
+  userId    String
+  title     String
+  content   String?     @db.Text
+  mood      Mood
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  images    PostImage[]
+
+  @@index([userId, createdAt])
+}
+
+model PostImage {
+  id        String   @id @default(uuid())
+  postId    String
+  imageUrl  String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 
-  posts Post[]
+  @@index([postId])
 }
 
 enum Mood {
@@ -27,30 +49,4 @@ enum Mood {
   SAD
   LAUGHING
   CONFUSED
-}
-
-model Post {
-  id        String @id @default(uuid())
-  userId    String
-  title     String
-  content   String? @db.Text
-  mood      Mood
-  images    PostImage[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields:[userId], references:[id], onDelete: Cascade)
-  @@index([userId, createdAt])
-}
-
-model PostImage{
-  id        String   @id @default(uuid())
-  postId    String
-  imageUrl  String
-  createdAt DateTime @default(now())
-
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-
-  @@index([postId])
 }
