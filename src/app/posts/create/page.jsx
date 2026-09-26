@@ -7,15 +7,20 @@ import { useRouter } from "next/navigation";
 import HeaderForm from "../../components/HeaderForm";
 import ButtonX from "../../components/ButtonX";
 import FormDumel from "../../components/FormDumel";
+import NotLogin from "../../components/NotLogin";
 
 function CreatePost() {
   const router = useRouter();
-  const { encryptionKey } = useAuth();
+  const { encryptionKey, user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState({
     type: "",
     message: "",
   });
+
+  if (!user) {
+    return <NotLogin />;
+  }
 
   const uploadImage = async (file) => {
     const formData = new FormData();

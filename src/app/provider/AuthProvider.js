@@ -90,39 +90,6 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // async function unlock(password) {
-  //   try {
-  //     const response = await fetch("/api/auth/unlock", {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify({
-  //         password,
-  //       }),
-  //     });
-
-  //     const data = await response.json();
-
-  //     if (!response.ok) {
-  //       throw new Error(data.message || "Gagal membuka diary");
-  //     }
-
-  //     const key = await deriveEncryptionKey(password, data.encryptionSalt);
-  //     const exportedKey = await exportEncryptionKey(key);
-
-  //     localStorage.setItem("dumeldump_encryption_key", exportedKey);
-
-  //     setEncryptionKey(key);
-
-  //     return true;
-  //   } catch (error) {
-  //     console.error("Unlock error:", error);
-
-  //     throw error;
-  //   }
-  // }
-
   async function logout() {
     try {
       const response = await fetch("/api/auth/logout", {
@@ -153,7 +120,6 @@ export function AuthProvider({ children }) {
         encryptionKey,
         loading,
         login,
-        // unlock,
         logout,
       }}
     >
